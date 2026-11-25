@@ -1,27 +1,16 @@
 # 🍝 Ricettario
 
-Le mie ricette preferite, senza pubblicità, pop-up o banner dei cookie.
-Sito statico: HTML, CSS e JavaScript, senza dipendenze né build.
+Una raccolta personale di ricette, senza pubblicità, pop-up o banner dei cookie.
+Solo ingredienti e procedimento, nient'altro.
 
-## Aggiungere una ricetta
+**👉 [rikicraftyt.github.io/ricettario](https://rikicraftyt.github.io/ricettario/)**
 
-Apri `ricette.js`, copia un blocco `{ ... }` esistente, incollalo in fondo alla lista e modifica i campi.
+## Caratteristiche
 
-| Campo | Descrizione |
-|---|---|
-| `id` | identificativo unico, minuscolo e senza spazi (finisce nell'URL) |
-| `titolo`, `categoria`, `tag` | usati per la ricerca e i filtri |
-| `porzioni`, `tempo` (minuti), `difficolta` | informazioni generali |
-| `ingredienti` | `{ q: 200, u: "g", n: "farina" }`; usa `q: null` per "q.b." |
-| `procedimento` | un elemento per ogni passo |
-| `note`, `fonte` | facoltativi |
-
-## Provarlo in locale
-
-Basta aprire `index.html` nel browser.
-
-## Pubblicarlo con GitHub Pages
-
-1. Fai il push del repository su GitHub.
-2. Vai su **Settings → Pages** e scegli **Deploy from a branch**, branch `main`, cartella `/ (root)`.
-3. Dopo un minuto il sito sarà su `https://<tuo-utente>.github.io/ricettario/`.
+- **Ricerca** per nome, ingrediente o tag, con filtri per categoria
+- **Porzioni regolabili**: le quantità degli ingredienti si ricalcolano da sole
+- **Ingredienti da spuntare** mentre cucini
+- **Schermo sempre acceso** mentre consulti una ricetta, sui dispositivi che lo supportano
+- **Tema chiaro e scuro** automatico
+- Pensato per il **telefono**, ma funziona anche su computer e su carta (versione per la stampa)
+- Leggero e veloce: niente tracciamento e niente librerie esterne
