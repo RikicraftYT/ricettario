@@ -2,13 +2,39 @@
 
 const app = document.getElementById("app");
 const stato = { cerca: "", categoria: "Tutte" };
+let RICETTE = [];
 
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 function formattaNumero(q) {
-  const r = Math.round(q * 10) / 10;
+  const r = q >= 10 ? Math.round(q) : Math.round(q * 10) / 10;
   return Number.isInteger(r) ? String(r) : r.toFixed(1).replace(".", ",");
+}
+
+// Grassetto, corsivo e link dentro il testo delle ricette
+function inline(s) {
+  return esc(s)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/\[(.+?)\]\((https?:[^)\s]+)\)/g, '<a href="$2" rel="noopener" target="_blank">$1</a>');
+}
+
+function meta(r, conPorzioni) {
+  const parti = [];
+  if (r.tempo) parti.push("⏱ " + esc(/^\d+$/.test(r.tempo) ? r.tempo + " min" : r.tempo));
+  if (conPorzioni) parti.push("👥 " + r.porzioni);
+  if (r.difficolta) parti.push(esc(r.difficolta));
+  return parti.join(" · ");
+}
+
+function passi(gruppi) {
+  let n = 1;
+  return gruppi.map((g) => {
+    const html = `${g.titolo ? `<h4>${esc(g.titolo)}</h4>` : ""}<ol class="passi" start="${n}" style="counter-reset: passo ${n - 1}">${g.voci.map((p) => `<li>${inline(p)}</li>`).join("")}</ol>`;
+    n += g.voci.length;
+    return html;
+  }).join("");
 }
 
 // ---------- Elenco ----------
@@ -46,7 +72,7 @@ function disegnaGriglia() {
   const risultati = RICETTE.filter((r) => {
     if (stato.categoria !== "Tutte" && r.categoria !== stato.categoria) return false;
     if (!q) return true;
-    const testo = [r.titolo, r.categoria, ...(r.tag || []), ...r.ingredienti.map((i) => i.n)].join(" ").toLowerCase();
+    const testo = [r.titolo, r.categoria, ...(r.tag || []), ...r.ingredienti.flatMap((g) => g.voci.map((i) => i.n))].join(" ").toLowerCase();
     return testo.includes(q);
   }).sort((a, b) => a.titolo.localeCompare(b.titolo, "it"));
 
@@ -58,7 +84,7 @@ function disegnaGriglia() {
       <a class="card" href="#/ricetta/${encodeURIComponent(r.id)}">
         <span class="card-cat">${esc(r.categoria)}</span>
         <h2>${esc(r.titolo)}</h2>
-        <p class="meta">⏱ ${r.tempo} min · 👥 ${r.porzioni} · ${esc(r.difficolta || "")}</p>
+        <p class="meta">${meta(r, true)}</p>
         <div class="tags">${(r.tag || []).map((t) => `<span>#${esc(t)}</span>`).join("")}</div>
       </a>`
         )
@@ -83,7 +109,7 @@ function vistaRicetta(id) {
     <article class="ricetta">
       <span class="card-cat">${esc(r.categoria)}</span>
       <h1>${esc(r.titolo)}</h1>
-      <p class="meta">⏱ ${r.tempo} min · ${esc(r.difficolta || "")}</p>
+      <p class="meta">${meta(r, false)}</p>
 
       <div class="azioni">
         <div class="porzioni">
@@ -97,18 +123,16 @@ function vistaRicetta(id) {
       <div class="colonne">
         <section>
           <h3>Ingredienti</h3>
-          <ul id="ingredienti" class="ingredienti"></ul>
+          <div id="ingredienti"></div>
         </section>
         <section>
           <h3>Procedimento</h3>
-          <ol class="passi">
-            ${r.procedimento.map((p) => `<li>${esc(p)}</li>`).join("")}
-          </ol>
+          ${passi(r.procedimento)}
         </section>
       </div>
 
-      ${r.note ? `<aside class="note"><strong>Note:</strong> ${esc(r.note)}</aside>` : ""}
-      ${r.varianti?.length ? `<section class="varianti"><h3>Varianti</h3><ul>${r.varianti.map((v) => `<li>${esc(v)}</li>`).join("")}</ul></section>` : ""}
+      ${r.note.length ? `<aside class="note"><strong>Note</strong>${r.note.map((p) => `<p>${inline(p)}</p>`).join("")}</aside>` : ""}
+      ${r.varianti?.length ? `<section class="varianti"><h3>Varianti</h3><ul>${r.varianti.map((v) => `<li>${inline(v)}</li>`).join("")}</ul></section>` : ""}
       ${r.fonti?.length ? `<p class="fonte">Fonti: ${r.fonti.map((x) => `<a href="${esc(x.url)}" rel="noopener" target="_blank">${esc(x.titolo || x.url)}</a>`).join(" · ")}</p>` : ""}
     </article>
   `;
@@ -116,11 +140,17 @@ function vistaRicetta(id) {
   const disegnaIngredienti = () => {
     const f = porzioni / r.porzioni;
     document.getElementById("nPorz").textContent = porzioni;
+    const spuntati = new Set([...document.querySelectorAll("#ingredienti input:checked")].map((c) => c.dataset.k));
     document.getElementById("ingredienti").innerHTML = r.ingredienti
-      .map((i, k) => {
-        const qt = i.q == null ? "" : `<b>${Array.isArray(i.q) ? i.q.map((x) => formattaNumero(x * f)).join("-") : formattaNumero(i.q * f)}${i.u ? " " + esc(i.u) : ""}</b> `;
-        return `<li><label><input type="checkbox" data-k="${k}"> <span>${qt}${esc(i.n)}</span></label></li>`;
-      })
+      .map((g, gi) => `
+        ${g.titolo ? `<h4>${esc(g.titolo)}</h4>` : ""}
+        <ul class="ingredienti">
+          ${g.voci.map((i, k) => {
+            const qt = i.q == null ? "" : `<b>${Array.isArray(i.q) ? i.q.map((x) => formattaNumero(x * f)).join("-") : formattaNumero(i.q * f)}${i.u ? " " + esc(i.u) : ""}</b> `;
+            const id = gi + "-" + k;
+            return `<li><label><input type="checkbox" data-k="${id}" ${spuntati.has(id) ? "checked" : ""}> <span>${qt}${inline(i.n)}</span></label></li>`;
+          }).join("")}
+        </ul>`)
       .join("");
   };
   disegnaIngredienti();
@@ -151,4 +181,9 @@ function router() {
 }
 
 window.addEventListener("hashchange", router);
-router();
+
+caricaRicette()
+  .then((r) => { RICETTE = r; router(); })
+  .catch(() => {
+    app.innerHTML = `<p class="vuoto">Impossibile caricare le ricette.</p>`;
+  });
