@@ -6,8 +6,7 @@ const stato = { cerca: "", categoria: "Tutte" };
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-function formattaQuantita(q) {
-  if (q == null) return "";
+function formattaNumero(q) {
   const r = Math.round(q * 10) / 10;
   return Number.isInteger(r) ? String(r) : r.toFixed(1).replace(".", ",");
 }
@@ -109,7 +108,8 @@ function vistaRicetta(id) {
       </div>
 
       ${r.note ? `<aside class="note"><strong>Note:</strong> ${esc(r.note)}</aside>` : ""}
-      ${r.fonte ? `<p class="fonte">Fonte: <a href="${esc(r.fonte)}" rel="noopener" target="_blank">${esc(r.fonte)}</a></p>` : ""}
+      ${r.varianti?.length ? `<section class="varianti"><h3>Varianti</h3><ul>${r.varianti.map((v) => `<li>${esc(v)}</li>`).join("")}</ul></section>` : ""}
+      ${r.fonti?.length ? `<p class="fonte">Fonti: ${r.fonti.map((x) => `<a href="${esc(x.url)}" rel="noopener" target="_blank">${esc(x.titolo || x.url)}</a>`).join(" · ")}</p>` : ""}
     </article>
   `;
 
@@ -118,7 +118,7 @@ function vistaRicetta(id) {
     document.getElementById("nPorz").textContent = porzioni;
     document.getElementById("ingredienti").innerHTML = r.ingredienti
       .map((i, k) => {
-        const qt = i.q == null ? "" : `<b>${formattaQuantita(i.q * f)}${i.u ? " " + esc(i.u) : ""}</b> `;
+        const qt = i.q == null ? "" : `<b>${Array.isArray(i.q) ? i.q.map((x) => formattaNumero(x * f)).join("-") : formattaNumero(i.q * f)}${i.u ? " " + esc(i.u) : ""}</b> `;
         return `<li><label><input type="checkbox" data-k="${k}"> <span>${qt}${esc(i.n)}</span></label></li>`;
       })
       .join("");

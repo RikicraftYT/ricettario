@@ -110,9 +110,15 @@ a { color: var(--accent); }
   margin-top: 24px; padding: 14px 18px; border-radius: var(--radius);
   background: var(--accent-soft); border-left: 4px solid var(--accent);
 }
-.fonte { color: var(--muted); font-size: .85rem; word-break: break-all; }
+.fonte { color: var(--muted); font-size: .85rem; margin-top: 24px; }
 
 @media print {
   .topbar, .footer, .indietro, .azioni { display: none; }
   body { background: #fff; color: #000; }
 }
+
+.varianti { margin-top: 24px; }
+.varianti h3 { margin: 0 0 8px; font-size: 1.1rem; }
+.varianti ul { margin: 0; padding-left: 20px; }
+.varianti li { margin-bottom: 6px; }
+.fonte a { word-break: normal; }

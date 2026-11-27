@@ -3,86 +3,48 @@
 //  Per aggiungerne una: copia un blocco { ... }, incollalo in fondo
 //  alla lista e modifica i campi. "id" deve essere unico e senza spazi.
 //
-//  Ingredienti: { q: quantità (numero o null), u: "unità", n: "nome" }
-//  Le quantità numeriche vengono ricalcolate quando cambi le porzioni.
+//  Ingredienti: { q: quantità, u: "unità", n: "nome" }
+//    q può essere un numero (3), un intervallo ([2, 3]) o null (q.b.).
+//    Le quantità numeriche vengono ricalcolate quando cambi le porzioni.
+//  Facoltativi: note, varianti (lista), fonti (lista di { titolo, url }).
 // ============================================================
 
 const RICETTE = [
   {
-    id: "carbonara",
-    titolo: "Spaghetti alla carbonara",
-    categoria: "Primi",
-    tag: ["pasta", "veloce", "romana"],
-    porzioni: 4,
-    tempo: 25, // minuti
-    difficolta: "Facile",
-    ingredienti: [
-      { q: 320, u: "g", n: "spaghetti" },
-      { q: 150, u: "g", n: "guanciale" },
-      { q: 4, u: "", n: "tuorli" },
-      { q: 50, u: "g", n: "pecorino romano grattugiato" },
-      { q: null, u: "", n: "pepe nero q.b." }
-    ],
-    procedimento: [
-      "Taglia il guanciale a listarelle e rosolalo in padella senza olio finché diventa croccante.",
-      "In una ciotola sbatti i tuorli con il pecorino e abbondante pepe.",
-      "Cuoci gli spaghetti in acqua salata e scolali al dente, tenendo da parte un po' di acqua di cottura.",
-      "Fuori dal fuoco unisci pasta e guanciale, poi aggiungi la crema di uova mescolando velocemente. Usa l'acqua di cottura per renderla cremosa.",
-      "Servi subito con altro pecorino e pepe."
-    ],
-    note: "Mai la panna. Il segreto è mantecare fuori dal fuoco per non fare la frittata.",
-    fonte: ""
-  },
-  {
-    id: "tiramisu",
-    titolo: "Tiramisù",
-    categoria: "Dolci",
-    tag: ["senza cottura", "classico"],
-    porzioni: 6,
-    tempo: 30,
-    difficolta: "Facile",
-    ingredienti: [
-      { q: 500, u: "g", n: "mascarpone" },
-      { q: 4, u: "", n: "uova" },
-      { q: 100, u: "g", n: "zucchero" },
-      { q: 300, u: "g", n: "savoiardi" },
-      { q: 300, u: "ml", n: "caffè" },
-      { q: null, u: "", n: "cacao amaro q.b." }
-    ],
-    procedimento: [
-      "Prepara il caffè e lascialo raffreddare.",
-      "Monta i tuorli con lo zucchero finché sono chiari e spumosi, poi incorpora il mascarpone.",
-      "Monta gli albumi a neve ben ferma e uniscili delicatamente alla crema.",
-      "Inzuppa velocemente i savoiardi nel caffè e fai uno strato sul fondo della pirofila, poi copri con la crema. Ripeti.",
-      "Spolvera di cacao e lascia in frigo almeno 4 ore."
-    ],
-    note: "Meglio se preparato il giorno prima.",
-    fonte: ""
-  },
-  {
-    id: "pancake",
-    titolo: "Pancake americani",
-    categoria: "Colazione",
-    tag: ["veloce", "dolce"],
+    id: "pollo-patate-forno",
+    titolo: "Cosce di pollo disossate al forno con patate",
+    categoria: "Secondi",
+    tag: ["pollo", "forno", "patate"],
     porzioni: 2,
-    tempo: 20,
+    tempo: 55, // minuti
     difficolta: "Facile",
     ingredienti: [
-      { q: 150, u: "g", n: "farina 00" },
-      { q: 200, u: "ml", n: "latte" },
-      { q: 1, u: "", n: "uovo" },
-      { q: 20, u: "g", n: "zucchero" },
-      { q: 25, u: "g", n: "burro fuso" },
-      { q: 6, u: "g", n: "lievito per dolci" },
-      { q: 1, u: "pizzico", n: "sale" }
+      { q: 2, u: "", n: "cosce di pollo disossate (circa 150 g l'una)" },
+      { q: 3, u: "", n: "patate medie" },
+      { q: [2, 3], u: "", n: "spicchi d'aglio con la buccia, schiacciati" },
+      { q: null, u: "", n: "rosmarino, origano secco, alloro" },
+      { q: null, u: "", n: "olio extravergine d'oliva" },
+      { q: null, u: "", n: "sale e pepe" },
+      { q: null, u: "", n: "vino bianco (facoltativo)" }
     ],
     procedimento: [
-      "Mescola farina, lievito, zucchero e sale in una ciotola.",
-      "A parte sbatti uovo, latte e burro fuso.",
-      "Unisci i liquidi ai secchi mescolando poco: qualche grumo va bene.",
-      "Cuoci un mestolo alla volta in una padella antiaderente calda, girando quando compaiono le bollicine."
+      "Accendi il forno a 200° ventilato.",
+      "Sbuccia le patate e tagliale a pezzi di media grandezza. Condiscile in una pirofila con olio, sale, pepe, aglio, rosmarino, origano e alloro. Inforna le patate da sole per circa 20 minuti.",
+      "Nel frattempo condisci le cosce con olio, sale, pepe e un po' di rosmarino.",
+      "Aggiungi le cosce nella teglia con la pelle rivolta verso l'alto.",
+      "Versa un goccio di vino bianco e 2-3 cucchiai d'acqua: aiutano a mantenere le cosce succose.",
+      "Cuoci per altri 25-30 minuti, bagnando ogni tanto il pollo con il sughetto che si forma in teglia.",
+      "Il pollo è pronto quando la pelle è dorata e la carne non ha parti rosate. Le patate devono essere morbide: se serve, lasciale qualche minuto in più. Servi ben caldo."
     ],
-    note: "",
-    fonte: ""
+    note: "Si cuoce in due tempi perché senza osso il pollo cuoce molto prima delle patate (circa 25 minuti). Partendo dalle patate, la carne non si asciuga.",
+    varianti: [
+      "A fine cottura aggiungi pomodorini, cipolla e olive nere per una versione mediterranea.",
+      "Usa paprika dolce o affumicata al posto dell'origano."
+    ],
+    fonti: [
+      { titolo: "Le torte di Gessica – Cosce di pollo disossate al forno con patate", url: "https://blog.giallozafferano.it/letortedigessica/cosce-di-pollo-disossate-al-forno-con-patate/" },
+      { titolo: "Allacciate il grembiule – Cosce di pollo al forno", url: "https://blog.giallozafferano.it/allacciateilgrembiule/cosce-di-pollo-al-forno/" },
+      { titolo: "Tavolartegusto – Cosce di pollo al forno", url: "https://www.tavolartegusto.it/?p=47499" }
+    ]
   }
 ];
