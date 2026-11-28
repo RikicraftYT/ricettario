@@ -18,9 +18,12 @@ const RANGE = String.raw`(${NUM})(?:\s*[-–]\s*(${NUM}))?`;
 const UNITA_RE = `(?:${FORME_UNITA.join("|")})`;
 
 const RE_INGREDIENTE = new RegExp(String.raw`^${RANGE}\s*(?:(${UNITA_RE})\b\.?\s+)?(.+)$`, "i");
-// Quantità alternative dentro il testo, es. "(oppure 170 g di burro)".
-// Solo dopo "oppure": "(circa 150 g l'una)" non va ricalcolato.
-const RE_QUANTITA_NEL_TESTO = new RegExp(String.raw`(\boppure\s+)${RANGE}\s*(${UNITA_RE})\b`, "gi");
+// Quantità dentro il testo, es. "(oppure 170 g di burro)" o "(circa 60 g)".
+// Restano fisse quelle riferite al singolo pezzo, es. "(circa 150 g l'una)".
+const RE_QUANTITA_NEL_TESTO = new RegExp(
+  String.raw`(^|[\s(])${RANGE}\s*(${UNITA_RE})\b(?!\s*(?:l['’]un[oa]|ciascun[oa]|cadauno|a testa|a pezzo)\b)`,
+  "gi"
+);
 
 function leggiNumero(s) {
   const fr = s.match(/^(\d*)([¼½¾⅓⅔])$/);

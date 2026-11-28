@@ -133,3 +133,5 @@ a { color: var(--accent); }
 .passi ul li::before { content: none; }
 .note ul { margin: 8px 0 0; padding-left: 20px; }
 .note li { margin-bottom: 6px; }
+
+.avviso { font-size: .85rem; color: var(--muted); background: var(--accent-soft); padding: 6px 12px; border-radius: 8px; margin: 0 0 12px; }

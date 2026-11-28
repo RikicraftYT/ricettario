@@ -125,6 +125,7 @@ function vistaRicetta(id) {
         </section>
         <section>
           <h3>Procedimento</h3>
+          <p id="avviso" class="avviso" hidden>Le quantità nel procedimento si riferiscono a ${r.porzioni} porzioni.</p>
           ${passi(r.procedimento)}
         </section>
       </div>
@@ -138,6 +139,7 @@ function vistaRicetta(id) {
   const disegnaIngredienti = () => {
     const f = porzioni / r.porzioni;
     document.getElementById("nPorz").textContent = porzioni;
+    document.getElementById("avviso").hidden = porzioni === r.porzioni;
     const spuntati = new Set([...document.querySelectorAll("#ingredienti input:checked")].map((c) => c.dataset.k));
     document.getElementById("ingredienti").innerHTML = r.ingredienti
       .map((g, gi) => `
