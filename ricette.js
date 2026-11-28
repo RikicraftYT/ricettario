@@ -173,10 +173,19 @@ function parseRicetta(id, testo) {
 
 async function caricaRicette() {
   const elenco = await fetch("ricette/indice.json", { cache: "no-cache" }).then((r) => r.json());
-  return Promise.all(
+  const ricette = await Promise.all(
     elenco.map(async (file) => {
-      const testo = await fetch("ricette/" + file, { cache: "no-cache" }).then((r) => r.text());
-      return parseRicetta(file.replace(/\.md$/, ""), testo);
+      try {
+        const res = await fetch("ricette/" + file, { cache: "no-cache" });
+        if (!res.ok) throw new Error(res.status);
+        const testo = await res.text();
+        if (!testo.trimStart().startsWith("---")) throw new Error("intestazione mancante");
+        return parseRicetta(file.replace(/\.md$/, ""), testo);
+      } catch (e) {
+        console.error(`Ricetta non caricata: ${file} (${e.message})`);
+        return null;
+      }
     })
   );
+  return ricette.filter(Boolean);
 }
