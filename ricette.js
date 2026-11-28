@@ -3,21 +3,28 @@
 // Carica le ricette dai file Markdown elencati in ricette/indice.json
 // e le trasforma in oggetti usati da app.js.
 
+// Unità riconosciute: [singolare, plurale]
 const UNITA = [
-  "kg", "g", "mg", "l", "dl", "cl", "ml",
-  "cucchiai", "cucchiaio", "cucchiaini", "cucchiaino",
-  "tazze", "tazza", "bicchieri", "bicchiere",
-  "bustine", "bustina", "pizzichi", "pizzico",
-  "fette", "fetta", "foglie", "foglia", "rametti", "rametto"
+  ["kg", "kg"], ["g", "g"], ["mg", "mg"], ["l", "l"], ["dl", "dl"], ["cl", "cl"], ["ml", "ml"],
+  ["cucchiaio", "cucchiai"], ["cucchiaino", "cucchiaini"],
+  ["tazza", "tazze"], ["bicchiere", "bicchieri"], ["bustina", "bustine"], ["pizzico", "pizzichi"],
+  ["fetta", "fette"], ["foglia", "foglie"], ["rametto", "rametti"], ["spicchio", "spicchi"]
 ];
+const FORME_UNITA = UNITA.flat().sort((a, b) => b.length - a.length);
 
-const NUM = String.raw`\d+(?:[.,]\d+)?(?:\/\d+)?`;
-const RE_INGREDIENTE = new RegExp(
-  String.raw`^(${NUM})(?:\s*-\s*(${NUM}))?\s*(?:(${UNITA.join("|")})\b\.?\s+)?(.+)$`,
-  "i"
-);
+const FRAZIONI = { "¼": 0.25, "½": 0.5, "¾": 0.75, "⅓": 1 / 3, "⅔": 2 / 3 };
+const NUM = String.raw`(?:\d+(?:[.,]\d+)?(?:\/\d+)?|\d*[¼½¾⅓⅔])`;
+const RANGE = String.raw`(${NUM})(?:\s*[-–]\s*(${NUM}))?`;
+const UNITA_RE = `(?:${FORME_UNITA.join("|")})`;
+
+const RE_INGREDIENTE = new RegExp(String.raw`^${RANGE}\s*(?:(${UNITA_RE})\b\.?\s+)?(.+)$`, "i");
+// Quantità alternative dentro il testo, es. "(oppure 170 g di burro)".
+// Solo dopo "oppure": "(circa 150 g l'una)" non va ricalcolato.
+const RE_QUANTITA_NEL_TESTO = new RegExp(String.raw`(\boppure\s+)${RANGE}\s*(${UNITA_RE})\b`, "gi");
 
 function leggiNumero(s) {
+  const fr = s.match(/^(\d*)([¼½¾⅓⅔])$/);
+  if (fr) return Number(fr[1] || 0) + FRAZIONI[fr[2]];
   if (s.includes("/")) {
     const [a, b] = s.split("/").map(Number);
     return a / b;
@@ -25,15 +32,40 @@ function leggiNumero(s) {
   return Number(s.replace(",", "."));
 }
 
+function formattaNumero(q) {
+  if (Math.abs(q - 0.25) < 0.01) return "¼";
+  if (Math.abs(q - 0.5) < 0.01) return "½";
+  if (Math.abs(q - 0.75) < 0.01) return "¾";
+  const r = q >= 10 ? Math.round(q) : Math.round(q * 10) / 10;
+  return Number.isInteger(r) ? String(r) : r.toFixed(1).replace(".", ",");
+}
+
+// Accorda l'unità con la quantità: 1 cucchiaino, 2 cucchiaini
+function accordaUnita(u, valore) {
+  const coppia = UNITA.find(([s, p]) => s === u.toLowerCase() || p === u.toLowerCase());
+  if (!coppia) return u;
+  return valore > 1 ? coppia[1] : coppia[0];
+}
+
+function formattaQuantita(q, u, f) {
+  const valori = (Array.isArray(q) ? q : [q]).map((x) => x * f);
+  const testo = valori.map(formattaNumero).join("-");
+  return u ? `${testo} ${accordaUnita(u, valori[valori.length - 1])}` : testo;
+}
+
+function scalaTesto(testo, f) {
+  if (f === 1) return testo;
+  return testo.replace(RE_QUANTITA_NEL_TESTO, (_, prima, a, b, u) => {
+    const q = b ? [leggiNumero(a), leggiNumero(b)] : leggiNumero(a);
+    return prima + formattaQuantita(q, u, f);
+  });
+}
+
 function parseIngrediente(riga) {
   const m = riga.match(RE_INGREDIENTE);
   if (!m) return { q: null, u: "", n: riga };
   const da = leggiNumero(m[1]);
-  return {
-    q: m[2] ? [da, leggiNumero(m[2])] : da,
-    u: m[3] || "",
-    n: m[4]
-  };
+  return { q: m[2] ? [da, leggiNumero(m[2])] : da, u: m[3] || "", n: m[4] };
 }
 
 function parseFrontMatter(testo) {
@@ -56,7 +88,7 @@ function dividiSezioni(corpo) {
   for (const raw of corpo.split("\n")) {
     const riga = raw.trimEnd();
     let m;
-    if ((m = riga.match(/^##\s+(.+)$/)) && !riga.startsWith("###")) {
+    if ((m = riga.match(/^##\s+(.+)$/))) {
       sezione = sezioni[m[1].trim().toLowerCase()] = [];
       gruppo = { titolo: "", righe: [] };
       sezione.push(gruppo);
@@ -70,19 +102,48 @@ function dividiSezioni(corpo) {
   return sezioni;
 }
 
-const voci = (righe) =>
-  righe.map((r) => r.match(/^\s*(?:[-*]|\d+[.)])\s+(.+)$/)).filter(Boolean).map((m) => m[1].trim());
+// Elenco puntato o numerato; le righe rientrate diventano sotto-punti
+function voci(righe) {
+  const out = [];
+  for (const riga of righe) {
+    const m = riga.match(/^(\s*)(?:[-*]|\d+[.)])\s+(.+)$/);
+    if (!m) continue;
+    if (m[1].length >= 2 && out.length) out[out.length - 1].sotto.push(m[2].trim());
+    else out.push({ testo: m[2].trim(), sotto: [] });
+  }
+  return out;
+}
 
-const paragrafi = (righe) =>
-  righe.join("\n").split(/\n\s*\n/).map((p) => p.replace(/\s*\n\s*/g, " ").trim()).filter(Boolean);
+// Blocchi di testo libero: paragrafi ed elenchi puntati
+function blocchi(righe) {
+  const out = [];
+  for (const riga of righe) {
+    const li = riga.match(/^\s*[-*]\s+(.+)$/);
+    const ultimo = out[out.length - 1];
+    if (li) {
+      if (ultimo?.tipo === "lista") ultimo.voci.push(li[1].trim());
+      else out.push({ tipo: "lista", voci: [li[1].trim()] });
+    } else if (!riga.trim()) {
+      out.push({ tipo: "stop" });
+    } else if (ultimo?.tipo === "p") {
+      ultimo.testo += " " + riga.trim();
+    } else {
+      out.push({ tipo: "p", testo: riga.trim() });
+    }
+  }
+  return out.filter((b) => b.tipo !== "stop");
+}
 
+const righeDi = (s, nome) => (s[nome] || []).flatMap((g) => g.righe);
 const gruppiNonVuoti = (gruppi) => (gruppi || []).filter((g) => g.voci.length);
 
 function parseRicetta(id, testo) {
   const { meta, corpo } = parseFrontMatter(testo.replace(/\r\n/g, "\n"));
   const s = dividiSezioni(corpo);
 
-  const fonti = voci((s["fonti"] || []).flatMap((g) => g.righe)).map((v) => {
+  // "8 persone (stampo da 16 cm)" -> 8 porzioni + dettaglio
+  const porz = (meta.porzioni || "").match(/(\d+)\s*(?:persone|porzioni|pezzi)?\s*(.*)$/i);
+  const fonti = voci(righeDi(s, "fonti")).map(({ testo: v }) => {
     const m = v.match(/^\[(.+?)\]\((.+?)\)$/);
     return m ? { titolo: m[1], url: m[2] } : { titolo: v, url: v };
   });
@@ -90,15 +151,19 @@ function parseRicetta(id, testo) {
   return {
     id,
     titolo: meta.titolo || id,
-    categoria: meta.categoria || "Altro",
-    tag: (meta.tag || "").split(",").map((t) => t.trim()).filter(Boolean),
-    porzioni: Number(meta.porzioni) || 1,
+    categoria: (meta.categoria || "Altro").split(">")[0].trim(),
+    tag: (meta.tag || "").replace(/^\[|\]$/g, "").split(",").map((t) => t.trim()).filter(Boolean),
+    porzioni: porz ? Number(porz[1]) : 1,
+    dettaglioPorzioni: porz ? porz[2].replace(/^\(|\)$/g, "").trim() : "",
     tempo: meta.tempo || "",
+    riposo: meta.riposo || "",
     difficolta: meta.difficolta || "",
-    ingredienti: gruppiNonVuoti((s["ingredienti"] || []).map((g) => ({ titolo: g.titolo, voci: voci(g.righe).map(parseIngrediente) }))),
+    ingredienti: gruppiNonVuoti(
+      (s["ingredienti"] || []).map((g) => ({ titolo: g.titolo, voci: voci(g.righe).map((v) => parseIngrediente(v.testo)) }))
+    ),
     procedimento: gruppiNonVuoti((s["procedimento"] || []).map((g) => ({ titolo: g.titolo, voci: voci(g.righe) }))),
-    note: paragrafi((s["note"] || []).flatMap((g) => g.righe)),
-    varianti: voci((s["varianti"] || []).flatMap((g) => g.righe)),
+    note: blocchi(righeDi(s, "note")),
+    varianti: voci(righeDi(s, "varianti")).map((v) => v.testo),
     fonti
   };
 }

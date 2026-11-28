@@ -7,10 +7,6 @@ let RICETTE = [];
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-function formattaNumero(q) {
-  const r = q >= 10 ? Math.round(q) : Math.round(q * 10) / 10;
-  return Number.isInteger(r) ? String(r) : r.toFixed(1).replace(".", ",");
-}
 
 // Grassetto, corsivo e link dentro il testo delle ricette
 function inline(s) {
@@ -23,6 +19,7 @@ function inline(s) {
 function meta(r, conPorzioni) {
   const parti = [];
   if (r.tempo) parti.push("⏱ " + esc(/^\d+$/.test(r.tempo) ? r.tempo + " min" : r.tempo));
+  if (!conPorzioni && r.riposo) parti.push("💤 riposo " + esc(r.riposo));
   if (conPorzioni) parti.push("👥 " + r.porzioni);
   if (r.difficolta) parti.push(esc(r.difficolta));
   return parti.join(" · ");
@@ -31,7 +28,7 @@ function meta(r, conPorzioni) {
 function passi(gruppi) {
   let n = 1;
   return gruppi.map((g) => {
-    const html = `${g.titolo ? `<h4>${esc(g.titolo)}</h4>` : ""}<ol class="passi" start="${n}" style="counter-reset: passo ${n - 1}">${g.voci.map((p) => `<li>${inline(p)}</li>`).join("")}</ol>`;
+    const html = `${g.titolo ? `<h4>${esc(g.titolo)}</h4>` : ""}<ol class="passi" start="${n}" style="counter-reset: passo ${n - 1}">${g.voci.map((p) => `<li>${inline(p.testo)}${p.sotto.length ? `<ul>${p.sotto.map((x) => `<li>${inline(x)}</li>`).join("")}</ul>` : ""}</li>`).join("")}</ol>`;
     n += g.voci.length;
     return html;
   }).join("");
@@ -117,6 +114,7 @@ function vistaRicetta(id) {
           <span><strong id="nPorz">${porzioni}</strong> porzioni</span>
           <button id="piu" aria-label="Più porzioni">+</button>
         </div>
+        ${r.dettaglioPorzioni ? `<span class="dettaglio">${inline(r.dettaglioPorzioni)}</span>` : ""}
         ${"wakeLock" in navigator ? `<label class="toggle"><input type="checkbox" id="schermo"> Schermo sempre acceso</label>` : ""}
       </div>
 
@@ -131,7 +129,7 @@ function vistaRicetta(id) {
         </section>
       </div>
 
-      ${r.note.length ? `<aside class="note"><strong>Note</strong>${r.note.map((p) => `<p>${inline(p)}</p>`).join("")}</aside>` : ""}
+      ${r.note.length ? `<aside class="note"><strong>Note</strong>${r.note.map((b) => b.tipo === "lista" ? `<ul>${b.voci.map((v) => `<li>${inline(v)}</li>`).join("")}</ul>` : `<p>${inline(b.testo)}</p>`).join("")}</aside>` : ""}
       ${r.varianti?.length ? `<section class="varianti"><h3>Varianti</h3><ul>${r.varianti.map((v) => `<li>${inline(v)}</li>`).join("")}</ul></section>` : ""}
       ${r.fonti?.length ? `<p class="fonte">Fonti: ${r.fonti.map((x) => `<a href="${esc(x.url)}" rel="noopener" target="_blank">${esc(x.titolo || x.url)}</a>`).join(" · ")}</p>` : ""}
     </article>
@@ -146,9 +144,9 @@ function vistaRicetta(id) {
         ${g.titolo ? `<h4>${esc(g.titolo)}</h4>` : ""}
         <ul class="ingredienti">
           ${g.voci.map((i, k) => {
-            const qt = i.q == null ? "" : `<b>${Array.isArray(i.q) ? i.q.map((x) => formattaNumero(x * f)).join("-") : formattaNumero(i.q * f)}${i.u ? " " + esc(i.u) : ""}</b> `;
+            const qt = i.q == null ? "" : `<b>${esc(formattaQuantita(i.q, i.u, f))}</b> `;
             const id = gi + "-" + k;
-            return `<li><label><input type="checkbox" data-k="${id}" ${spuntati.has(id) ? "checked" : ""}> <span>${qt}${inline(i.n)}</span></label></li>`;
+            return `<li><label><input type="checkbox" data-k="${id}" ${spuntati.has(id) ? "checked" : ""}> <span>${qt}${inline(scalaTesto(i.n, f))}</span></label></li>`;
           }).join("")}
         </ul>`)
       .join("");
